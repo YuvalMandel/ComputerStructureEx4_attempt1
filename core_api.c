@@ -13,7 +13,11 @@ typedef enum {
 } thread_status;
 
 int next_thread(int current_thread,thread_status* thread_status_array){
+
     int next_thread = current_thread + 1;
+    if(next_thread >= SIM_GetThreadsNum()){
+        next_thread = 0;
+    }
     while(thread_status_array[next_thread] != THREAD_ACTIVE){
         next_thread++;
         if(next_thread >= SIM_GetThreadsNum()){
@@ -48,6 +52,9 @@ void CORE_BlockedMT() {
     regs = (int**)malloc(sizeof(int*)*SIM_GetThreadsNum());
     for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
         regs[i] = (int*)malloc(sizeof(int)*REGS_COUNT);
+        for (int j = 0; j < REGS_COUNT; ++j) {
+            regs[i][j] = 0;
+        }
     }
     regs[SIM_GetThreadsNum()][REGS_COUNT];
     int thread_wait_time[SIM_GetThreadsNum()];
@@ -80,29 +87,29 @@ void CORE_BlockedMT() {
             total_insts++;
             switch (current_inst.opcode) {
                 case CMD_NOP:
-                    current_line_array[current_thread] += 4;
+                    current_line_array[current_thread]++;
                     break;
                 case CMD_ADD:
                     regs[current_thread][current_inst.dst_index] =
                             regs[current_thread][current_inst.src1_index] +
                             regs[current_thread][current_inst.src2_index_imm];
-                    current_line_array[current_thread] += 4;
+                    current_line_array[current_thread]++;
                     break;
                 case CMD_SUB:
                     regs[current_thread][current_inst.dst_index] =
                             regs[current_thread][current_inst.src1_index] -
                             regs[current_thread][current_inst.src2_index_imm];
-                    current_line_array[current_thread] += 4;
+                    current_line_array[current_thread]++;
                     break;
                 case CMD_ADDI:
                     regs[current_thread][current_inst.dst_index] =
                             regs[current_thread][current_inst.src1_index] + current_inst.src2_index_imm;
-                    current_line_array[current_thread] += 4;
+                    current_line_array[current_thread]++;
                     break;
                 case CMD_SUBI:
                     regs[current_thread][current_inst.dst_index] =
                             regs[current_thread][current_inst.src1_index] - current_inst.src2_index_imm;
-                    current_line_array[current_thread] += 4;
+                    current_line_array[current_thread]++;
                     break;
                 case CMD_LOAD:
                     if(current_inst.isSrc2Imm){
@@ -111,7 +118,7 @@ void CORE_BlockedMT() {
                     }else{
                         SIM_MemDataRead( regs[current_thread][current_inst.src1_index],&( regs[current_thread][current_inst.dst_index]));
                     }
-                    current_line_array[current_thread] += 4;
+                    current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
                     thread_wait_time[current_thread] = SIM_GetLoadLat();
                     break;
@@ -123,7 +130,7 @@ void CORE_BlockedMT() {
                         SIM_MemDataWrite(regs[current_thread][current_inst.src1_index],
                                         regs[current_thread][current_inst.dst_index]);
                     }
-                    current_line_array[current_thread] += 4;
+                    current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
                     thread_wait_time[current_thread] = SIM_GetStoreLat();
                 case CMD_HALT:
