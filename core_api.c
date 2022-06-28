@@ -33,6 +33,7 @@ int next_thread(int current_thread,thread_status* thread_status_array){
 int total_cycles;
 int total_insts;
 int** regs;
+tcontext* tocntext_array;
 
 void CORE_BlockedMT() {
 
@@ -49,14 +50,15 @@ void CORE_BlockedMT() {
     Instruction current_inst;
     total_cycles = 0;
     total_insts = 0;
-    regs = (int**)malloc(sizeof(int*)*SIM_GetThreadsNum());
+//    regs = (int**)malloc(sizeof(int*)*SIM_GetThreadsNum());
+    tocntext_array = (tcontext*)malloc(sizeof(tcontext)*SIM_GetThreadsNum());
     for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
-        regs[i] = (int*)malloc(sizeof(int)*REGS_COUNT);
+//        regs[i] = (int*)malloc(sizeof(int)*REGS_COUNT);
         for (int j = 0; j < REGS_COUNT; ++j) {
-            regs[i][j] = 0;
+            tocntext_array[i].reg[j] = 0;
         }
     }
-    regs[SIM_GetThreadsNum()][REGS_COUNT];
+//    regs[SIM_GetThreadsNum()][REGS_COUNT];
     int thread_wait_time[SIM_GetThreadsNum()];
     for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
         thread_wait_time[i] = 0;
@@ -90,33 +92,33 @@ void CORE_BlockedMT() {
                     current_line_array[current_thread]++;
                     break;
                 case CMD_ADD:
-                    regs[current_thread][current_inst.dst_index] =
-                            regs[current_thread][current_inst.src1_index] +
-                            regs[current_thread][current_inst.src2_index_imm];
+                    tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            tocntext_array[current_thread].reg[current_inst.src1_index] +
+                            tocntext_array[current_thread].reg[current_inst.src2_index_imm];
                     current_line_array[current_thread]++;
                     break;
                 case CMD_SUB:
-                    regs[current_thread][current_inst.dst_index] =
-                            regs[current_thread][current_inst.src1_index] -
-                            regs[current_thread][current_inst.src2_index_imm];
+                    tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            tocntext_array[current_thread].reg[current_inst.src1_index] -
+                            tocntext_array[current_thread].reg[current_inst.src2_index_imm];
                     current_line_array[current_thread]++;
                     break;
                 case CMD_ADDI:
-                    regs[current_thread][current_inst.dst_index] =
-                            regs[current_thread][current_inst.src1_index] + current_inst.src2_index_imm;
+                    tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            tocntext_array[current_thread].reg[current_inst.src1_index] + current_inst.src2_index_imm;
                     current_line_array[current_thread]++;
                     break;
                 case CMD_SUBI:
-                    regs[current_thread][current_inst.dst_index] =
-                            regs[current_thread][current_inst.src1_index] - current_inst.src2_index_imm;
+                    tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            tocntext_array[current_thread].reg[current_inst.src1_index] - current_inst.src2_index_imm;
                     current_line_array[current_thread]++;
                     break;
                 case CMD_LOAD:
                     if(current_inst.isSrc2Imm){
-                        SIM_MemDataRead( regs[current_thread][current_inst.src1_index] + current_inst.src2_index_imm,
-                                         &( regs[current_thread][current_inst.dst_index]));
+                        SIM_MemDataRead( tocntext_array[current_thread].reg[current_inst.src1_index] + current_inst.src2_index_imm,
+                                         &( tocntext_array[current_thread].reg[current_inst.dst_index]));
                     }else{
-                        SIM_MemDataRead( regs[current_thread][current_inst.src1_index],&( regs[current_thread][current_inst.dst_index]));
+                        SIM_MemDataRead( tocntext_array[current_thread].reg[current_inst.src1_index],&( tocntext_array[current_thread].reg[current_inst.dst_index]));
                     }
                     current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
@@ -124,11 +126,11 @@ void CORE_BlockedMT() {
                     break;
                 case CMD_STORE:
                     if(current_inst.isSrc2Imm){
-                        SIM_MemDataWrite( regs[current_thread][current_inst.dst_index] +  current_inst.src2_index_imm,
-                                         regs[current_thread][current_inst.src1_index]);
+                        SIM_MemDataWrite( tocntext_array[current_thread].reg[current_inst.dst_index] +  current_inst.src2_index_imm,
+                                         tocntext_array[current_thread].reg[current_inst.src1_index]);
                     }else {
-                        SIM_MemDataWrite(regs[current_thread][current_inst.src1_index],
-                                        regs[current_thread][current_inst.dst_index]);
+                        SIM_MemDataWrite(tocntext_array[current_thread].reg[current_inst.src1_index],
+                                        tocntext_array[current_thread].reg[current_inst.dst_index]);
                     }
                     current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
@@ -145,10 +147,10 @@ void CORE_FinegrainedMT() {
 }
 
 double CORE_BlockedMT_CPI(){
-    for (int i = 0; i < SIM_GetThreadsNum(); ++i) {
-        free( regs[i]);
-    }
-    free(regs);
+//    for (int i = 0; i < SIM_GetThreadsNum(); ++i) {
+//        free( regs[i]);
+//    }
+    free(tocntext_array);
 	return ((double)total_cycles)/((double)total_insts);
 }
 
@@ -157,9 +159,10 @@ double CORE_FinegrainedMT_CPI(){
 }
 
 void CORE_BlockedMT_CTX(tcontext* context, int threadid) {
-    for (int i = 0; i < REGS_COUNT; ++i) {
-        context->reg[i] = regs[threadid][i];
-    }
+//    for (int i = 0; i < REGS_COUNT; ++i) {
+//        context->reg[i] = regs[threadid][i];
+//    }
+    *(context+threadid) = tocntext_array[threadid];
 }
 
 void CORE_FinegrainedMT_CTX(tcontext* context, int threadid) {
