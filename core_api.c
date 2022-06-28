@@ -34,9 +34,11 @@ int total_cycles;
 int total_insts;
 int** regs;
 tcontext* tocntext_array;
+int debug;
 
 void CORE_BlockedMT() {
 
+    debug = 0;
     int num_of_active_threads = SIM_GetThreadsNum();
     thread_status thread_status_array[SIM_GetThreadsNum()];
     for (int i = 0; i < SIM_GetThreadsNum(); ++i) {
@@ -70,16 +72,28 @@ void CORE_BlockedMT() {
         for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
             if(thread_wait_time[i] != 0){
                 thread_wait_time[i]--;
-                if( thread_wait_time[i] == 0){
-                    thread_status_array[i] = THREAD_ACTIVE;
-                }
+            }else if(thread_status_array[i] == THREAD_HOLD){
+                thread_status_array[i] = THREAD_ACTIVE;
             }
         }
         if(thread_status_array[current_thread] != THREAD_ACTIVE){
             int result = next_thread(current_thread, thread_status_array);
             if(result != -1){
                 current_thread = result;
+                debug++;
                 total_cycles += SIM_GetSwitchCycles();
+                for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
+                    if(thread_wait_time[i] != 0){
+                        if(thread_wait_time[i] - SIM_GetSwitchCycles() < 0){
+                            thread_wait_time[i] = 0;
+                            thread_status_array[i] = THREAD_ACTIVE;
+                        }else{
+                            thread_wait_time[i] -=  SIM_GetSwitchCycles();
+                        }
+                    }else if(thread_status_array[i] == THREAD_HOLD){
+                        thread_status_array[i] = THREAD_ACTIVE;
+                    }
+                }
             }else{
                 good_current_thread = false;
             }
