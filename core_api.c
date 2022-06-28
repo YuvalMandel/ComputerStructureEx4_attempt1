@@ -23,7 +23,7 @@ int next_thread(int current_thread,thread_status* thread_status_array){
         if(next_thread >= SIM_GetThreadsNum()){
             next_thread = 0;
         }
-        if(next_thread = current_thread){
+        if(next_thread == current_thread){
             return -1;
         }
     }
