@@ -192,12 +192,18 @@ void CORE_FinegrainedMT(){
 
     while(num_of_active_threads != 0){
         fg_total_cycles += 1;
-        bool good_current_thread = true;
+//        bool good_current_thread = true;
         for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
             if(thread_wait_time[i] != 0){
                 thread_wait_time[i]--;
             }else if(thread_status_array[i] == THREAD_HOLD){
                 thread_status_array[i] = THREAD_ACTIVE;
+            }
+        }
+        if(thread_status_array[current_thread] != THREAD_ACTIVE) {
+            int result = next_thread(current_thread, thread_status_array);
+            if(result != -1){
+                current_thread = result;
             }
         }
         if(thread_status_array[current_thread] == THREAD_ACTIVE){
