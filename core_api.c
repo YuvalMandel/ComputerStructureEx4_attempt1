@@ -30,11 +30,14 @@ int next_thread(int current_thread,thread_status* thread_status_array){
     return next_thread;
 }
 
-int total_cycles;
-int total_insts;
-int** regs;
-tcontext* tocntext_array;
+int blocked_total_cycles;
+int blocked_total_insts;
+tcontext* blocked_tocntext_array;
 int debug;
+
+int fg_total_cycles;
+int fg_total_insts;
+tcontext* fg_tocntext_array;
 
 void CORE_BlockedMT() {
 
@@ -50,14 +53,14 @@ void CORE_BlockedMT() {
         current_line_array[i] = 0;
     }
     Instruction current_inst;
-    total_cycles = 0;
-    total_insts = 0;
+    blocked_total_cycles = 0;
+    blocked_total_insts = 0;
 //    regs = (int**)malloc(sizeof(int*)*SIM_GetThreadsNum());
-    tocntext_array = (tcontext*)malloc(sizeof(tcontext)*SIM_GetThreadsNum());
+    blocked_tocntext_array = (tcontext*)malloc(sizeof(tcontext) * SIM_GetThreadsNum());
     for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
 //        regs[i] = (int*)malloc(sizeof(int)*REGS_COUNT);
         for (int j = 0; j < REGS_COUNT; ++j) {
-            tocntext_array[i].reg[j] = 0;
+            blocked_tocntext_array[i].reg[j] = 0;
         }
     }
 //    regs[SIM_GetThreadsNum()][REGS_COUNT];
@@ -67,7 +70,7 @@ void CORE_BlockedMT() {
     }
 
     while(num_of_active_threads != 0){
-        total_cycles += 1;
+        blocked_total_cycles += 1;
         bool good_current_thread = true;
         for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
             if(thread_wait_time[i] != 0){
@@ -81,7 +84,7 @@ void CORE_BlockedMT() {
             if(result != -1){
                 current_thread = result;
                 debug++;
-                total_cycles += SIM_GetSwitchCycles();
+                blocked_total_cycles += SIM_GetSwitchCycles();
                 for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
                     if(thread_wait_time[i] != 0){
                         if(thread_wait_time[i] - SIM_GetSwitchCycles() < 0){
@@ -100,39 +103,39 @@ void CORE_BlockedMT() {
         }
         if(good_current_thread == true){
             SIM_MemInstRead(current_line_array[current_thread], &current_inst, current_thread);
-            total_insts++;
+            blocked_total_insts++;
             switch (current_inst.opcode) {
                 case CMD_NOP:
                     current_line_array[current_thread]++;
                     break;
                 case CMD_ADD:
-                    tocntext_array[current_thread].reg[current_inst.dst_index] =
-                            tocntext_array[current_thread].reg[current_inst.src1_index] +
-                            tocntext_array[current_thread].reg[current_inst.src2_index_imm];
+                    blocked_tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            blocked_tocntext_array[current_thread].reg[current_inst.src1_index] +
+                            blocked_tocntext_array[current_thread].reg[current_inst.src2_index_imm];
                     current_line_array[current_thread]++;
                     break;
                 case CMD_SUB:
-                    tocntext_array[current_thread].reg[current_inst.dst_index] =
-                            tocntext_array[current_thread].reg[current_inst.src1_index] -
-                            tocntext_array[current_thread].reg[current_inst.src2_index_imm];
+                    blocked_tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            blocked_tocntext_array[current_thread].reg[current_inst.src1_index] -
+                            blocked_tocntext_array[current_thread].reg[current_inst.src2_index_imm];
                     current_line_array[current_thread]++;
                     break;
                 case CMD_ADDI:
-                    tocntext_array[current_thread].reg[current_inst.dst_index] =
-                            tocntext_array[current_thread].reg[current_inst.src1_index] + current_inst.src2_index_imm;
+                    blocked_tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            blocked_tocntext_array[current_thread].reg[current_inst.src1_index] + current_inst.src2_index_imm;
                     current_line_array[current_thread]++;
                     break;
                 case CMD_SUBI:
-                    tocntext_array[current_thread].reg[current_inst.dst_index] =
-                            tocntext_array[current_thread].reg[current_inst.src1_index] - current_inst.src2_index_imm;
+                    blocked_tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            blocked_tocntext_array[current_thread].reg[current_inst.src1_index] - current_inst.src2_index_imm;
                     current_line_array[current_thread]++;
                     break;
                 case CMD_LOAD:
                     if(current_inst.isSrc2Imm){
-                        SIM_MemDataRead( tocntext_array[current_thread].reg[current_inst.src1_index] + current_inst.src2_index_imm,
-                                         &( tocntext_array[current_thread].reg[current_inst.dst_index]));
+                        SIM_MemDataRead(blocked_tocntext_array[current_thread].reg[current_inst.src1_index] + current_inst.src2_index_imm,
+                                        &( blocked_tocntext_array[current_thread].reg[current_inst.dst_index]));
                     }else{
-                        SIM_MemDataRead( tocntext_array[current_thread].reg[current_inst.src1_index],&( tocntext_array[current_thread].reg[current_inst.dst_index]));
+                        SIM_MemDataRead(blocked_tocntext_array[current_thread].reg[current_inst.src1_index], &( blocked_tocntext_array[current_thread].reg[current_inst.dst_index]));
                     }
                     current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
@@ -140,11 +143,11 @@ void CORE_BlockedMT() {
                     break;
                 case CMD_STORE:
                     if(current_inst.isSrc2Imm){
-                        SIM_MemDataWrite( tocntext_array[current_thread].reg[current_inst.dst_index] +  current_inst.src2_index_imm,
-                                         tocntext_array[current_thread].reg[current_inst.src1_index]);
+                        SIM_MemDataWrite(blocked_tocntext_array[current_thread].reg[current_inst.dst_index] + current_inst.src2_index_imm,
+                                         blocked_tocntext_array[current_thread].reg[current_inst.src1_index]);
                     }else {
-                        SIM_MemDataWrite(tocntext_array[current_thread].reg[current_inst.src1_index],
-                                        tocntext_array[current_thread].reg[current_inst.dst_index]);
+                        SIM_MemDataWrite(blocked_tocntext_array[current_thread].reg[current_inst.src1_index],
+                                         blocked_tocntext_array[current_thread].reg[current_inst.dst_index]);
                     }
                     current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
@@ -159,27 +162,129 @@ void CORE_BlockedMT() {
     }
 }
 
-void CORE_FinegrainedMT() {
+void CORE_FinegrainedMT(){
+
+    debug = 0;
+    int num_of_active_threads = SIM_GetThreadsNum();
+    thread_status thread_status_array[SIM_GetThreadsNum()];
+    for (int i = 0; i < SIM_GetThreadsNum(); ++i) {
+        thread_status_array[i] = THREAD_ACTIVE;
+    }
+    int current_thread = 0;
+    int current_line_array[ SIM_GetThreadsNum()];
+    for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
+        current_line_array[i] = 0;
+    }
+    Instruction current_inst;
+    fg_total_cycles = 0;
+    fg_total_insts = 0;
+    fg_tocntext_array = (tcontext*)malloc(sizeof(tcontext) * SIM_GetThreadsNum());
+    for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
+        for (int j = 0; j < REGS_COUNT; ++j) {
+            fg_tocntext_array[i].reg[j] = 0;
+        }
+    }
+//    regs[SIM_GetThreadsNum()][REGS_COUNT];
+    int thread_wait_time[SIM_GetThreadsNum()];
+    for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
+        thread_wait_time[i] = 0;
+    }
+
+    while(num_of_active_threads != 0){
+        fg_total_cycles += 1;
+        bool good_current_thread = true;
+        for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
+            if(thread_wait_time[i] != 0){
+                thread_wait_time[i]--;
+            }else if(thread_status_array[i] == THREAD_HOLD){
+                thread_status_array[i] = THREAD_ACTIVE;
+            }
+        }
+        if(thread_status_array[current_thread] == THREAD_ACTIVE){
+            SIM_MemInstRead(current_line_array[current_thread], &current_inst, current_thread);
+            fg_total_insts++;
+            switch (current_inst.opcode) {
+                case CMD_NOP:
+                    current_line_array[current_thread]++;
+                    break;
+                case CMD_ADD:
+                    fg_tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            fg_tocntext_array[current_thread].reg[current_inst.src1_index] +
+                            fg_tocntext_array[current_thread].reg[current_inst.src2_index_imm];
+                    current_line_array[current_thread]++;
+                    break;
+                case CMD_SUB:
+                    fg_tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            fg_tocntext_array[current_thread].reg[current_inst.src1_index] -
+                            fg_tocntext_array[current_thread].reg[current_inst.src2_index_imm];
+                    current_line_array[current_thread]++;
+                    break;
+                case CMD_ADDI:
+                    fg_tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            fg_tocntext_array[current_thread].reg[current_inst.src1_index] + current_inst.src2_index_imm;
+                    current_line_array[current_thread]++;
+                    break;
+                case CMD_SUBI:
+                    fg_tocntext_array[current_thread].reg[current_inst.dst_index] =
+                            fg_tocntext_array[current_thread].reg[current_inst.src1_index] - current_inst.src2_index_imm;
+                    current_line_array[current_thread]++;
+                    break;
+                case CMD_LOAD:
+                    if(current_inst.isSrc2Imm){
+                        SIM_MemDataRead(fg_tocntext_array[current_thread].reg[current_inst.src1_index] + current_inst.src2_index_imm,
+                                        &( fg_tocntext_array[current_thread].reg[current_inst.dst_index]));
+                    }else{
+                        SIM_MemDataRead(fg_tocntext_array[current_thread].reg[current_inst.src1_index], &( fg_tocntext_array[current_thread].reg[current_inst.dst_index]));
+                    }
+                    current_line_array[current_thread]++;
+                    thread_status_array[current_thread] = THREAD_HOLD;
+                    thread_wait_time[current_thread] = SIM_GetLoadLat();
+                    break;
+                case CMD_STORE:
+                    if(current_inst.isSrc2Imm){
+                        SIM_MemDataWrite(fg_tocntext_array[current_thread].reg[current_inst.dst_index] + current_inst.src2_index_imm,
+                                         fg_tocntext_array[current_thread].reg[current_inst.src1_index]);
+                    }else {
+                        SIM_MemDataWrite(fg_tocntext_array[current_thread].reg[current_inst.src1_index],
+                                         fg_tocntext_array[current_thread].reg[current_inst.dst_index]);
+                    }
+                    current_line_array[current_thread]++;
+                    thread_status_array[current_thread] = THREAD_HOLD;
+                    thread_wait_time[current_thread] = SIM_GetStoreLat();
+                    break;
+                case CMD_HALT:
+                    thread_status_array[current_thread] = THREAD_FINISHED;
+                    num_of_active_threads--;
+                    break;
+            }
+        }
+        int result = next_thread(current_thread, thread_status_array);
+        if(result != -1){
+            current_thread = result;
+        }
+    }
 }
 
 double CORE_BlockedMT_CPI(){
 //    for (int i = 0; i < SIM_GetThreadsNum(); ++i) {
 //        free( regs[i]);
 //    }
-    free(tocntext_array);
-	return ((double)total_cycles)/((double)total_insts);
+    free(blocked_tocntext_array);
+	return ((double)blocked_total_cycles) / ((double)blocked_total_insts);
 }
 
 double CORE_FinegrainedMT_CPI(){
-	return 0;
+    free(fg_tocntext_array);
+    return ((double)fg_total_cycles) / ((double)fg_total_insts);
 }
 
 void CORE_BlockedMT_CTX(tcontext* context, int threadid) {
 //    for (int i = 0; i < REGS_COUNT; ++i) {
 //        context->reg[i] = regs[threadid][i];
 //    }
-    *(context+threadid) = tocntext_array[threadid];
+    *(context+threadid) = blocked_tocntext_array[threadid];
 }
 
 void CORE_FinegrainedMT_CTX(tcontext* context, int threadid) {
+    *(context+threadid) = fg_tocntext_array[threadid];
 }
