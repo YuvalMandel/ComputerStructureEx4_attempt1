@@ -135,9 +135,11 @@ void CORE_BlockedMT() {
                     current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
                     thread_wait_time[current_thread] = SIM_GetStoreLat();
+                    break;
                 case CMD_HALT:
                     thread_status_array[current_thread] = THREAD_FINISHED;
                     num_of_active_threads--;
+                    break;
             }
         }
     }
