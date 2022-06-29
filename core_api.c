@@ -39,7 +39,15 @@ int fg_total_cycles;
 int fg_total_insts;
 tcontext* fg_tocntext_array;
 
+int switch_cycles;
+int store_latency;
+int load_latency;
+
 void CORE_BlockedMT() {
+
+    switch_cycles = SIM_GetSwitchCycles();
+    store_latency = SIM_GetStoreLat();
+    load_latency = SIM_GetLoadLat();
 
     debug = 0;
     int num_of_active_threads = SIM_GetThreadsNum();
@@ -84,14 +92,14 @@ void CORE_BlockedMT() {
             if(result != -1){
                 current_thread = result;
                 debug++;
-                blocked_total_cycles += SIM_GetSwitchCycles();
+                blocked_total_cycles += switch_cycles;
                 for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
                     if(thread_wait_time[i] != 0){
-                        if(thread_wait_time[i] - SIM_GetSwitchCycles() < 0){
+                        if(thread_wait_time[i] - switch_cycles < 0){
                             thread_wait_time[i] = 0;
                             thread_status_array[i] = THREAD_ACTIVE;
                         }else{
-                            thread_wait_time[i] -=  SIM_GetSwitchCycles();
+                            thread_wait_time[i] -=  switch_cycles;
                         }
                     }else if(thread_status_array[i] == THREAD_HOLD){
                         thread_status_array[i] = THREAD_ACTIVE;
@@ -139,7 +147,7 @@ void CORE_BlockedMT() {
                     }
                     current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
-                    thread_wait_time[current_thread] = SIM_GetLoadLat();
+                    thread_wait_time[current_thread] = load_latency;
                     break;
                 case CMD_STORE:
                     if(current_inst.isSrc2Imm){
@@ -151,7 +159,7 @@ void CORE_BlockedMT() {
                     }
                     current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
-                    thread_wait_time[current_thread] = SIM_GetStoreLat();
+                    thread_wait_time[current_thread] = store_latency;
                     break;
                 case CMD_HALT:
                     thread_status_array[current_thread] = THREAD_FINISHED;
@@ -191,7 +199,6 @@ void CORE_FinegrainedMT(){
     }
 
     while(num_of_active_threads != 0){
-        fg_total_cycles += 1;
 //        bool good_current_thread = true;
         for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
             if(thread_wait_time[i] != 0){
@@ -200,12 +207,12 @@ void CORE_FinegrainedMT(){
                 thread_status_array[i] = THREAD_ACTIVE;
             }
         }
-        if(thread_status_array[current_thread] != THREAD_ACTIVE) {
+//        if(thread_status_array[current_thread] != THREAD_ACTIVE) {
             int result = next_thread(current_thread, thread_status_array);
             if(result != -1){
                 current_thread = result;
             }
-        }
+//        }
         if(thread_status_array[current_thread] == THREAD_ACTIVE){
             SIM_MemInstRead(current_line_array[current_thread], &current_inst, current_thread);
             fg_total_insts++;
@@ -244,7 +251,7 @@ void CORE_FinegrainedMT(){
                     }
                     current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
-                    thread_wait_time[current_thread] = SIM_GetLoadLat();
+                    thread_wait_time[current_thread] = load_latency;
                     break;
                 case CMD_STORE:
                     if(current_inst.isSrc2Imm){
@@ -256,7 +263,7 @@ void CORE_FinegrainedMT(){
                     }
                     current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
-                    thread_wait_time[current_thread] = SIM_GetStoreLat();
+                    thread_wait_time[current_thread] = store_latency;
                     break;
                 case CMD_HALT:
                     thread_status_array[current_thread] = THREAD_FINISHED;
@@ -264,10 +271,11 @@ void CORE_FinegrainedMT(){
                     break;
             }
         }
-        int result = next_thread(current_thread, thread_status_array);
-        if(result != -1){
-            current_thread = result;
-        }
+//        int result = next_thread(current_thread, thread_status_array);
+//        if(result != -1){
+//            current_thread = result;
+//        }
+        fg_total_cycles += 1;
     }
 }
 
