@@ -178,7 +178,7 @@ void CORE_FinegrainedMT(){
     for (int i = 0; i < SIM_GetThreadsNum(); ++i) {
         thread_status_array[i] = THREAD_ACTIVE;
     }
-    int current_thread = 0;
+    int current_thread = SIM_GetThreadsNum();
     int current_line_array[ SIM_GetThreadsNum()];
     for (int i = 0; i <  SIM_GetThreadsNum(); ++i) {
         current_line_array[i] = 0;
