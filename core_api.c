@@ -143,7 +143,8 @@ void CORE_BlockedMT() {
                         SIM_MemDataRead(blocked_tocntext_array[current_thread].reg[current_inst.src1_index] + current_inst.src2_index_imm,
                                         &( blocked_tocntext_array[current_thread].reg[current_inst.dst_index]));
                     }else{
-                        SIM_MemDataRead(blocked_tocntext_array[current_thread].reg[current_inst.src1_index], &( blocked_tocntext_array[current_thread].reg[current_inst.dst_index]));
+                        SIM_MemDataRead(blocked_tocntext_array[current_thread].reg[current_inst.src1_index] + blocked_tocntext_array[current_thread].reg[current_inst.src2_index_imm],
+                                        &( blocked_tocntext_array[current_thread].reg[current_inst.dst_index]));
                     }
                     current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
@@ -154,7 +155,7 @@ void CORE_BlockedMT() {
                         SIM_MemDataWrite(blocked_tocntext_array[current_thread].reg[current_inst.dst_index] + current_inst.src2_index_imm,
                                          blocked_tocntext_array[current_thread].reg[current_inst.src1_index]);
                     }else {
-                        SIM_MemDataWrite(blocked_tocntext_array[current_thread].reg[current_inst.src1_index],
+                        SIM_MemDataWrite(blocked_tocntext_array[current_thread].reg[current_inst.src1_index]  + blocked_tocntext_array[current_thread].reg[current_inst.src2_index_imm],
                                          blocked_tocntext_array[current_thread].reg[current_inst.dst_index]);
                     }
                     current_line_array[current_thread]++;
@@ -247,7 +248,8 @@ void CORE_FinegrainedMT(){
                         SIM_MemDataRead(fg_tocntext_array[current_thread].reg[current_inst.src1_index] + current_inst.src2_index_imm,
                                         &( fg_tocntext_array[current_thread].reg[current_inst.dst_index]));
                     }else{
-                        SIM_MemDataRead(fg_tocntext_array[current_thread].reg[current_inst.src1_index], &( fg_tocntext_array[current_thread].reg[current_inst.dst_index]));
+                        SIM_MemDataRead(fg_tocntext_array[current_thread].reg[current_inst.src1_index] + blocked_tocntext_array[current_thread].reg[current_inst.src2_index_imm],
+                                        &( fg_tocntext_array[current_thread].reg[current_inst.dst_index]));
                     }
                     current_line_array[current_thread]++;
                     thread_status_array[current_thread] = THREAD_HOLD;
@@ -258,7 +260,7 @@ void CORE_FinegrainedMT(){
                         SIM_MemDataWrite(fg_tocntext_array[current_thread].reg[current_inst.dst_index] + current_inst.src2_index_imm,
                                          fg_tocntext_array[current_thread].reg[current_inst.src1_index]);
                     }else {
-                        SIM_MemDataWrite(fg_tocntext_array[current_thread].reg[current_inst.src1_index],
+                        SIM_MemDataWrite(fg_tocntext_array[current_thread].reg[current_inst.src1_index] + blocked_tocntext_array[current_thread].reg[current_inst.src2_index_imm],
                                          fg_tocntext_array[current_thread].reg[current_inst.dst_index]);
                     }
                     current_line_array[current_thread]++;
